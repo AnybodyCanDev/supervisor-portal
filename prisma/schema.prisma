@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model InvoiceStore {
+    invoice_id      String     @id
+    s3_url          String
+    zoho_po_number  String?
+    scanned_data    Json?
+    zoho_bill_id    String?
+    created_at      DateTime @default(now())
+}
+
+model DecrementCache {
+    zoho_po_number  String      @id
+    original_items  Json
+    remaining_items Json
+    created_at      DateTime @default(now())
+    updated_at      DateTime @updatedAt
+}
+
+enum Status {
+    cleared
+    excess
+}
+
+model ReceiptTable {
+    receipt_id      Int     @id @default(autoincrement())
+    zoho_po_number  String
+    items           Json?
+    status          Status
+    created_at      DateTime @default(now())
+}
+
+model SystemLogs {
+    log_id      Int     @id @default(autoincrement())
+    log_type    String
+    zoho_po_number String
+    attachment Json?
+    log_message String
+    created_at  DateTime @default(now())
+}
+
+model ThreeWayValidator {
+    zoho_po_number String @id
+    invoice_status Boolean @default(false)
+    receipt_status Boolean @default(false)
+    created_at  DateTime @default(now())
+    updated_at  DateTime @updatedAt
+}
+
+model RaiseFlags {
+    flag_id     Int     @id @default(autoincrement())
+    zoho_po_number String?
+    flag_type String
+    flag_description String
+    created_at  DateTime @default(now())
+}
+
+model Employee {
+    emp_id     Int     @id @default(autoincrement())
+    emp_name   String
+    emp_email  String
+    role_lvl   String
+    sup_id    Int
+    workload  Int
+    created_at DateTime @default(now())
+
+    Approval Approval[]
+
+    Auth Auth[]
+}
+
+model Threshold {
+    category   String @id
+    min_rank_req String
+    min_amount Int
+    max_amount Int 
+}
+
+model Approval {
+    approval_id String @id @default(uuid())
+    invoice_id String 
+    emp_id    Int
+    employee  Employee @relation(fields: [emp_id], references: [emp_id])
+    created_at DateTime @default(now())
+    approved_at DateTime?
+    approval_level Int
+    category String
+}
+
+
+model Auth {
+    emp_id     Int @id
+    employee    Employee @relation(fields: [emp_id], references: [emp_id])
+    password    String
+    access_token String
+    refresh_token String
+}
