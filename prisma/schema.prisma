@@ -69,18 +69,16 @@ model Employee {
     emp_id     Int     @id @default(autoincrement())
     emp_name   String
     emp_email  String
+    department String?
     role_lvl   String
     sup_id    Int
     workload  Int
     created_at DateTime @default(now())
-
-    Approval Approval[]
-
-    Auth Auth[]
 }
 
 model Threshold {
-    category   String @id
+    threshold_id String @id @default(uuid())
+    category   String
     min_rank_req String
     min_amount Int
     max_amount Int 
@@ -90,18 +88,15 @@ model Approval {
     approval_id String @id @default(uuid())
     invoice_id String 
     emp_id    Int
-    employee  Employee @relation(fields: [emp_id], references: [emp_id])
     created_at DateTime @default(now())
     approved_at DateTime?
     approval_level Int
     category String
+    status String?
 }
 
 
 model Auth {
     emp_id     Int @id
-    employee    Employee @relation(fields: [emp_id], references: [emp_id])
     password    String
-    access_token String
-    refresh_token String
 }

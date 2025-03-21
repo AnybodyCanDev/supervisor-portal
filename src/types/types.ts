@@ -39,3 +39,20 @@ export interface SystemLog {
     max_amount: number;
     min_amount: number;
   }
+
+
+  export interface Invoice {
+    invoice_id: string;
+    signed_url: string;
+    zoho_po_number?: string;
+    zoho_bill_id?: string;
+    // ... other fields if needed
+  }
+  
+  export interface Bill {
+    bill_id: string;
+    vendor_name: string;
+    status: string;
+    total: number;
+    // add any other fields you need from the Zoho response
+  }

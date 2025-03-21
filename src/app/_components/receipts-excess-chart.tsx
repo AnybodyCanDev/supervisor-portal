@@ -12,7 +12,7 @@ export default function ReceiptsPieChart({ receipts }: Props) {
   // Count "excess" and "cleared" receipts
   const counts = receipts.reduce(
     (acc, receipt) => {
-      if (receipt.status === 'approved') acc.cleared += 1;
+      if (receipt.status === 'cleared') acc.cleared += 1;
       else acc.excess += 1;
       return acc;
     },

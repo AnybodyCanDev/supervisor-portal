@@ -1,81 +1,134 @@
-'use client'
-import { useState, useEffect } from 'react';
-import { InvoiceStore } from '../../types/types';
+"use client";
+import { useEffect, useState } from "react";
+import { Bill, Invoice } from "../../types/types";
+import { getInvoicePDFs } from "~/server/aws"; // Your S3 invoices fetch function
+import axios from "axios";
+import Loader from "../_components/loader";
+import PriceTierChart from "../_components/bill-price-chart";
+import VendorBarChart from "../_components/bill-vendor-chart";
+import StatusPieChart from "../_components/bill-status-chart";
+import { getAllBills } from "~/server/zoho";
 
-export default function Invoices() {
-  const [invoices, setInvoices] = useState<InvoiceStore[]>([]);
-  const [search, setSearch] = useState<string>('');
-  const [filter, setFilter] = useState<string>('all');
+const ORGANIZATION_ID = process.env.NEXT_PUBLIC_ZOHO_ORG_ID; // e.g., "10234695"
+// Note: The access token is handled in your zoho module
+
+export default function InvoiceList() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch invoice PDFs from S3
+  const fetchInvoicePDFs = async () => {
+    try {
+      const data = await getInvoicePDFs();
+      setInvoices(data);
+    } catch (error) {
+      console.error("Error fetching invoice PDFs", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch pending invoices from Zoho Books API
+  const [bills, setBills] = useState<Bill[]>([]);
+
+  const fetchBills = async () => {
+    try {
+      // Adjust this endpoint as needed.
+      const response = await getAllBills();
+      if (response) {
+        setBills(response.bills);
+      }
+    } catch (error) {
+      console.error("Error fetching bills:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   useEffect(() => {
-    fetch('/api/invoices') // Replace with your API endpoint
-      .then((res) => res.json())
-      .then((data: InvoiceStore[]) => setInvoices(data));
+    fetchInvoicePDFs();
+    fetchBills();
   }, []);
 
-  const filteredInvoices = invoices
-    .filter((invoice) => {
-      if (filter === 'with_scanned_data') return !!invoice.scanned_data;
-      if (filter === 'with_bill_id') return !!invoice.zoho_bill_id;
-      return true;
-    })
-    .filter(
-      (invoice) =>
-        (invoice.zoho_po_number?.includes(search) || !search) ||
-        (invoice.zoho_bill_id?.includes(search) || !search)
-    );
+//   // Approve a pending invoice using its bill_id
+//   const approveInvoice = async (bill_id: string) => {
+//     try {
+//       const approvalUrl = `https://www.zohoapis.com/books/v3/bills/${bill_id}/approve?organization_id=${ORGANIZATION_ID}`;
+//       const response = await axios.post(approvalUrl, null, {
+//         headers: {
+//           Authorization: `Zoho-oauthtoken ${process.env.NEXT_PUBLIC_ZOHO_ACCESS_TOKEN}`,
+//         },
+//       });
+//       console.log("Approval response:", response.data);
+//       // Optionally, refetch pending invoices to update the list
+//       fetchPendingInvoices();
+//     } catch (error: any) {
+//       console.error("Error approving invoice:", error.response?.data || error.message);
+//     }
+//   };
+
+  // Helper: Find the PDF URL for a given Zoho PO number from our invoices list
+  const findPdfForPO = (poNumber?: string) => {
+    if (!poNumber) return null;
+    const match = invoices.find(inv => inv.zoho_po_number === poNumber);
+    return match ? match.signed_url : null;
+  };
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl mb-4">PDF Invoices</h1>
-      <div className="flex gap-4 mb-4">
-        <input
-          type="text"
-          placeholder="Search by PO Number or Bill ID"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input input-bordered w-full max-w-xs"
-        />
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="select select-bordered w-full max-w-xs"
-        >
-          <option value="all">All</option>
-          <option value="with_scanned_data">With Scanned Data</option>
-          <option value="with_bill_id">With Bill ID</option>
-        </select>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="table w-full">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>S3 URL</th>
-              <th>PO Number</th>
-              <th>Scanned Data</th>
-              <th>Bill ID</th>
-              <th>Created At</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredInvoices.map((invoice) => (
-              <tr key={invoice.invoice_id}>
-                <td>{invoice.invoice_id}</td>
-                <td>
-                  <a href={invoice.s3_url} className="link" target="_blank" rel="noopener noreferrer">
-                    View PDF
+    <div className="p-6 space-y-8">
+      
+
+        <div className="space-y-8">
+            <h1 className="text-2xl font-bold mb-4">Bill Analytics</h1>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <StatusPieChart bills={bills} />
+                <VendorBarChart bills={bills} />
+            </div>
+            <div>
+                <PriceTierChart bills={bills} />
+            </div>
+        </div>
+        {/* Invoice PDFs Section */}
+      <section>
+        <h1 className="text-2xl font-bold mb-4">Invoice PDFs</h1>
+        {loading ? (
+          <div className="flex items-center justify-center w-full">
+            <Loader />
+          </div>
+        ) : (
+          <div >
+            <input
+              type="text"
+              placeholder="Search by PO Number"
+              className="input input-bordered max-w-lg bg-white bg-blue-50 mb-4 w-full"
+              onChange={(e) => {
+                const searchValue = e.target.value.toLowerCase();
+                setInvoices((prevInvoices) =>
+                  prevInvoices.filter((invoice) =>
+                    invoice.zoho_po_number?.toLowerCase().includes(searchValue)
+                  )
+                );
+              }}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {invoices.map((invoice) => (
+                <div key={invoice.invoice_id} className="border p-4 rounded-lg shadow-md">
+                  <p className="font-semibold">PO Number: {invoice.zoho_po_number || "N/A"}</p>
+                  <a
+                    href={invoice.signed_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-blue-500 hover:underline"
+                  >
+                    Open PDF
                   </a>
-                </td>
-                <td>{invoice.zoho_po_number || 'N/A'}</td>
-                <td>{invoice.scanned_data ? 'Yes' : 'No'}</td>
-                <td>{invoice.zoho_bill_id || 'N/A'}</td>
-                <td>{new Date(invoice.created_at).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

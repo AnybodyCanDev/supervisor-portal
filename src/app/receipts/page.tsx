@@ -15,10 +15,12 @@ export default function Receipts() {
   const [filter, setFilter] = useState<string>('all');
   const [expanded, setExpanded] = useState<number | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
+    const [head, setHead] = useState<number>(0);
   const fetchReceipts = async () => {
     const data = await getReceipts();
     setReceipts(data);
     setLoading(false);
+    setHead(data.length-1);
   };
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function Receipts() {
 
     return (
     <div className='flex gap-4 w-full flex-grow'>
-        <div className="p-6 bg-white w-[600px] shadow-md rounded-xl">
+        <div className="p-6 bg-white w-[600px] flex-shrink-0 shadow-md rounded-xl">
             <h1 className="text-2xl flex font-semibold mb-4 text-gray-700">
                 <Icon icon="receipt_long" className="mr-2" />
                 Receipts
@@ -138,25 +140,28 @@ export default function Receipts() {
             <ReceiptsDayChart receipts={receipts}/>
             <ReceiptsPieChart receipts={receipts}/>
         </div>
-        {receipts.length > 0 && (
+        {head && (
         <div className="p-6 bg-white h-fit shadow-md rounded-lg">
             
                 <h2 className="text-xl font-semibold text-gray-700 mb-3">Latest Receipt</h2>
                 <div className="w-full">
-                <p><strong>PO Number:</strong> {receipts[0]?.zoho_po_number}</p>
+                <p><strong>PO Number:</strong> {receipts[head]?.zoho_po_number}</p>
                 <p>
                     <strong>Status:</strong> 
-                    <span className={receipts[0]?.status === 'cleared'
+                    <span className={receipts[head]?.status === 'cleared'
                         ? 'text-green-500 capitalize'
-                        : receipts[0]?.status === 'pending'
+                        : receipts[head]?.status === 'pending'
                         ? 'text-yellow-500 capitalize'
                         : 'text-red-500 capitalize'
-                    }> {receipts[0]?.status}</span>
+                    }> {receipts[head]?.status}</span>
                 </p>
-                <p><strong>Created At:</strong> {receipts[0]?.created_at ? new Date(receipts[0].created_at).toLocaleString() : 'N/A'}</p>
+                <p>
+                    <strong>Created At:</strong>
+                    {receipts[head]?.created_at ? new Date(receipts[head].created_at).toLocaleString() : 'N/A'}
+                </p>
 
                 <h3 className="font-semibold text-gray-700 mt-3">Items</h3>
-                {receipts[0]?.items?.length > 0 ? (
+                {receipts[head]?.items?.length > 0 ? (
                 <table className="table-auto w-full border">
                     <thead>
                     <tr className="text-sm font-mono">
@@ -165,7 +170,7 @@ export default function Receipts() {
                     </tr>
                     </thead>
                     <tbody>
-                    {receipts[0]?.items.map((item: { quantity: number; description: string }, index: number) => (
+                    {receipts[head]?.items.map((item: { quantity: number; description: string }, index: number) => (
                         <tr key={index} className="border-t text-sm">
                         <td className="px-4 py-2">{item.description}</td>
                         <td className="px-4 py-2">{item.quantity}</td>

@@ -8,13 +8,11 @@ export default function Sidebar() {
   const pathname = usePathname(); // Get current path
 
   const links = [
-    { href: "/", icon: "home" },
-    { href: "/logs", icon: "description" },
+    { href: "/", icon: "description" },
     { href: "/flags", icon: "report" },
     { href: "/thresholds", icon: "manage_accounts" },
-    { href: "/invoices", icon: "picture_as_pdf" },
-    { href: "/receipts", icon: "receipt_long" },
-    { href: "/analytics", icon: "monitoring" },
+    { href: "/invoices", icon: "receipt_long" },
+    { href: "/receipts", icon: "inventory" },
   ];
 
   return (
