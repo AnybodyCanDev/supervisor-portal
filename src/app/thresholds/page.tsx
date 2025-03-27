@@ -12,6 +12,7 @@ export default function ThresholdMatrix() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [editingCell, setEditingCell] = useState<{ category: string; rank: string } | null>(null);
   const [editedValue, setEditedValue] = useState<number | null>(null);
+  const [initialEditedValue, setInitialEditedValue] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function ThresholdMatrix() {
   const handleEdit = (category: string, rank: string, value: number) => {
     setEditingCell({ category, rank });
     setEditedValue(value);
+    setInitialEditedValue(value);
   };
 
   const handleSave = async () => {
@@ -59,7 +61,14 @@ export default function ThresholdMatrix() {
       );
       setEditingCell(null);
       setEditedValue(null);
+      setInitialEditedValue(null);
     }
+  };
+
+  const handleCancel = () => {
+    setEditingCell(null);
+    setEditedValue(null);
+    setInitialEditedValue(null);
   };
 
   return (
@@ -89,26 +98,49 @@ export default function ThresholdMatrix() {
           <tbody>
             {ranks.map(rank => (
               <tr key={rank} className='border-b'>
-                <td className='px-4 py-2'>{rank}</td>
+                <td className='px-4 py-2 font-mono'>{rank}</td>
                 {categories.map(category => {
                   const threshold = sortedThresholds.find(t => t.category === category && t.min_rank_req === rank);
+                  const currentValue = threshold?.max_amount ?? 0;
+                  const isEditing =
+                    editingCell?.category === category && editingCell?.rank === rank;
                   return (
-                    <td key={category} className='px-4 py-2 text-center'>
-                      {editingCell?.category === category && editingCell?.rank === rank ? (
-                        <input
-                          type='number'
-                          value={editedValue ?? ''}
-                          onChange={e => setEditedValue(parseInt(e.target.value, 10))}
-                          onBlur={handleSave}
-                          className='input input-bordered w-full text-center'
-                          autoFocus
-                        />
+                    <td key={category} className='px-4 py-2 text-center font-mono'>
+                      {isEditing ? (
+                        <div className='flex flex-col items-center gap-1'>
+                          <input
+                            type='number'
+                            value={editedValue ?? ''}
+                            onChange={e => setEditedValue(parseInt(e.target.value, 10))}
+                            className='px-3 bg-blue-50 w-36 text-center'
+                            autoFocus
+                          />
+                          <div className='flex justify-center gap-2'>
+                            <button
+                              onClick={handleSave}
+                              disabled={editedValue === initialEditedValue}
+                              className={`px-3 w-16 text-sm py-1 rounded ${
+                                editedValue === initialEditedValue
+                                  ? 'bg-gray-300 cursor-not-allowed'
+                                  : 'bg-blue-500 text-white hover:bg-blue-600'
+                              }`}
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={handleCancel}
+                              className='px-3 py-1 rounded text-sm bg-red-500 text-white hover:bg-red-600'
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
                       ) : (
                         <span
                           className='cursor-pointer hover:underline'
-                          onClick={() => handleEdit(category, rank, threshold?.max_amount || 0)}
+                          onClick={() => handleEdit(category, rank, currentValue)}
                         >
-                          {threshold?.max_amount ?? '-'}
+                          {currentValue || '-'}
                         </span>
                       )}
                     </td>

@@ -32,7 +32,7 @@ export async function getThresholds() {
 
 export async function updateThreshold(category: string, min_rank_req: string, newMaxAmount: number) {
     try {
-        const updatedThreshold = await db.threshold.update({
+        const updatedThreshold = await db.threshold.updateMany({
             where: {
                 category,
                 min_rank_req
